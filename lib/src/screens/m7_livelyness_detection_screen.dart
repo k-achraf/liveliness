@@ -149,11 +149,13 @@ class _MLivelyness7DetectionScreenState
   }
 
   Future<void> _processCameraImage(CameraImage cameraImage) async {
-    final WriteBuffer allBytes = WriteBuffer();
-    for (final Plane plane in cameraImage.planes) {
-      allBytes.putUint8List(plane.bytes);
-    }
-    final bytes = allBytes.done().buffer.asUint8List();
+    final plane = cameraImage.planes.first;
+
+    // final WriteBuffer allBytes = WriteBuffer();
+    // for (final Plane plane in cameraImage.planes) {
+    //   allBytes.putUint8List(plane.bytes);
+    // }
+    // final bytes = allBytes.done().buffer.asUint8List();
 
     final Size imageSize = Size(
       cameraImage.width.toDouble(),
@@ -171,26 +173,26 @@ class _MLivelyness7DetectionScreenState
     );
     if (inputImageFormat == null) return;
 
-    final planeData = cameraImage.planes.map(
-      (Plane plane) {
-        return InputImagePlaneMetadata(
-          bytesPerRow: plane.bytesPerRow,
-          height: plane.height,
-          width: plane.width,
-        );
-      },
-    ).toList();
-
-    final inputImageData = InputImageData(
+    // final planeData = cameraImage.planes.map(
+    //   (Plane plane) {
+    //     return InputImagePlaneMetadata(
+    //       bytesPerRow: plane.bytesPerRow,
+    //       height: plane.height,
+    //       width: plane.width,
+    //     );
+    //   },
+    // ).toList();
+    //
+    final inputImageData = InputImageMetadata(
       size: imageSize,
-      imageRotation: imageRotation,
-      inputImageFormat: inputImageFormat,
-      planeData: planeData,
+      rotation: imageRotation,
+      format: inputImageFormat,
+      bytesPerRow: plane.bytesPerRow,
     );
 
     final inputImage = InputImage.fromBytes(
-      bytes: bytes,
-      inputImageData: inputImageData,
+      bytes: plane.bytes,
+      metadata: inputImageData,
     );
 
     _processImage(inputImage);
@@ -203,16 +205,16 @@ class _MLivelyness7DetectionScreenState
     _isBusy = true;
     final faces = await M7MLHelper.instance.processInputImage(inputImage);
 
-    if (inputImage.inputImageData?.size != null &&
-        inputImage.inputImageData?.imageRotation != null) {
+    if (inputImage.metadata?.size != null &&
+        inputImage.metadata?.rotation != null) {
       if (faces.isEmpty) {
         _resetSteps();
       } else {
         final firstFace = faces.first;
         final painter = M7FaceDetectorPainter(
           firstFace,
-          inputImage.inputImageData!.size,
-          inputImage.inputImageData!.imageRotation,
+          inputImage.metadata!.size,
+          inputImage.metadata!.rotation,
         );
         _customPaint = CustomPaint(
           painter: painter,
